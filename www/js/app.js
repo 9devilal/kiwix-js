@@ -26,8 +26,8 @@
 // This uses require.js to structure javascript:
 // http://requirejs.org/docs/api.html#define
 
-define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFilesystemAccess','q'],
- function($, zimArchiveLoader, util, uiUtil, cookies, abstractFilesystemAccess, q) {
+define(['jquery', 'zimArchiveLoader', 'uiUtil', 'cookies','abstractFilesystemAccess','q'],
+ function($, zimArchiveLoader, uiUtil, cookies, abstractFilesystemAccess, Q) {
      
     /**
      * Maximum number of articles to display in a search
@@ -373,7 +373,7 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
      * @returns {Promise<Object>} A Promise for an object with cache attributes 'type', 'description', and 'count'
      */
     function getCacheAttributes() {
-        return q.Promise(function (resolve, reject) {
+        return Q.Promise(function (resolve, reject) {
             if (contentInjectionMode === 'serviceworker') {
                 // Create a Message Channel
                 var channel = new MessageChannel();
@@ -857,27 +857,27 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
      * @returns {Promise}
      */
     function readRemoteArchive(url) {
-        var deferred = q.defer();
-        var request = new XMLHttpRequest();
-        request.open("GET", url, true);
-        request.responseType = "blob";
-        request.onreadystatechange = function () {
-            if (request.readyState === XMLHttpRequest.DONE) {
-                if ((request.status >= 200 && request.status < 300) || request.status === 0) {
-                    // Hack to make this look similar to a file
-                    request.response.name = url;
-                    deferred.resolve(request.response);
+        return Q.Promise(function(resolve, reject) {
+            var request = new XMLHttpRequest();
+            request.open("GET", url, true);
+            request.responseType = "blob";
+            request.onreadystatechange = function () {
+                if (request.readyState === XMLHttpRequest.DONE) {
+                    if (request.status >= 200 && request.status < 300 || request.status === 0) {
+                        // Hack to make this look similar to a file
+                        request.response.name = url;
+                        resolve(request.response);
+                    }
+                    else {
+                        reject("HTTP status " + request.status + " when reading " + url);
+                    }
                 }
-                else {
-                    deferred.reject("HTTP status " + request.status + " when reading " + url);
-                }
-            }
-        };
-        request.onabort = function (e) {
-            deferred.reject(e);
-        };
-        request.send(null);
-        return deferred.promise;
+            };
+            request.onabort = function (e) {
+                reject(e);
+            };
+            request.send(null);
+        });
     }
     
     /**
@@ -889,7 +889,7 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
         for (i = 0; i < arguments.length; i++) {
             readRequests[i] = readRemoteArchive(arguments[i]);
         }
-        return q.all(readRequests).then(function(arrayOfArchives) {
+        return Q.all(readRequests).then(function(arrayOfArchives) {
             setLocalArchiveFromFileList(arrayOfArchives);
         });
     };
@@ -1107,7 +1107,7 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
                         });
                     }
                 };
-                selectedArchive.getDirEntryByTitle(title).then(readFile).fail(function () {
+                selectedArchive.getDirEntryByTitle(title).then(readFile).catch(function () {
                     messagePort.postMessage({ 'action': 'giveContent', 'title': title, 'content': new UInt8Array() });
                 });
             } else {
@@ -1284,7 +1284,7 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
                         var mimetype = dirEntry.getMimetype();
                         uiUtil.feedNodeWithBlob(image, 'src', content, mimetype);
                     });
-                }).fail(function (e) {
+                }).catch(function (e) {
                     console.error("could not find DirEntry for image:" + title, e);
                 });
             });
@@ -1337,7 +1337,7 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
                                 renderIfCSSFulfilled(fileDirEntry.url);
                             }
                         );
-                    }).fail(function (e) {
+                    }).catch(function (e) {
                         console.error("could not find DirEntry for CSS : " + title, e);
                         cssCount--;
                         renderIfCSSFulfilled();
@@ -1377,7 +1377,7 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
                             uiUtil.feedNodeWithBlob(script, 'src', content, 'text/javascript');
                         });
                     }
-                }).fail(function (e) {
+                }).catch(function (e) {
                     console.error("could not find DirEntry for javascript : " + title, e);
                 });
             });
@@ -1477,7 +1477,7 @@ define(['jquery', 'zimArchiveLoader', 'util', 'uiUtil', 'cookies','abstractFiles
                 $('#activeContent').hide();
                 readArticle(dirEntry);
             }
-        }).fail(function(e) { alert("Error reading article with title " + title + " : " + e); });
+        }).catch(function(e) { alert("Error reading article with title " + title + " : " + e); });
     }
     
     function goToRandomArticle() {

@@ -857,10 +857,8 @@ define(['jquery', 'zimArchiveLoader', 'uiUtil', 'cookies','abstractFilesystemAcc
      * @returns {Promise}
      */
     function readRemoteArchive(url) {
+        var request = new XMLHttpRequest();
         return Q.Promise(function(resolve, reject) {
-            var request = new XMLHttpRequest();
-            request.open("GET", url, true);
-            request.responseType = "blob";
             request.onreadystatechange = function () {
                 if (request.readyState === XMLHttpRequest.DONE) {
                     if (request.status >= 200 && request.status < 300 || request.status === 0) {
@@ -876,6 +874,8 @@ define(['jquery', 'zimArchiveLoader', 'uiUtil', 'cookies','abstractFilesystemAcc
             request.onabort = function (e) {
                 reject(e);
             };
+            request.responseType = "blob";
+            request.open("GET", url, true);
             request.send(null);
         });
     }

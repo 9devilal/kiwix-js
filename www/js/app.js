@@ -850,33 +850,30 @@ define(['jquery', 'zimArchiveLoader', 'uiUtil', 'cookies','abstractFilesystemAcc
     }
 
     /**
-     * Reads a remote archive with given URL, and returns the response in a Promise.
+     * Reads a remote archive with given URL, and returns the response as a resolved or rejected Promise.
      * This function is used by setRemoteArchives below, for UI tests
      * 
      * @param {String} url The URL of the archive to read
-     * @returns {Promise} A promise for the requested file (blob)
      */
     function readRemoteArchive(url) {
         var request = new XMLHttpRequest();
-        return Q.Promise(function (resolve, reject) {
-            request.onreadystatechange = function () {
-                if (request.readyState === 4) {
-                    if (request.status >= 200 && request.status < 300 || request.status === 0) {
-                        // Hack to make the blob look like a file
-                        request.response.name = url;
-                        resolve(request.response);
-                    } else {
-                        reject("HTTP status " + request.status + " when reading " + url);
-                    }
+        request.onreadystatechange = function () {
+            if (request.readyState === 4) {
+                if (request.status >= 200 && request.status < 300 || request.status === 0) {
+                    // Hack to make the blob look like a file
+                    request.response.name = url;
+                    return Q.resolve(request.response);
+                } else {
+                    return Q.reject("HTTP status " + request.status + " when reading " + url);
                 }
-            };
-            request.onabort = function (e) {
-                reject(e);
-            };
-            request.responseType = "blob";
-            request.open("GET", url, true);
-            request.send(null);
-        });
+            }
+        };
+        request.onabort = function (e) {
+            return Q.reject(e);
+        };
+        request.responseType = "blob";
+        request.open("GET", url, true);
+        request.send(null);
     }
     
     /**

@@ -853,20 +853,19 @@ define(['jquery', 'zimArchiveLoader', 'uiUtil', 'cookies','abstractFilesystemAcc
      * Reads a remote archive with given URL, and returns the response in a Promise.
      * This function is used by setRemoteArchives below, for UI tests
      * 
-     * @param url The URL of the archive to read
-     * @returns {Promise}
+     * @param {String} url The URL of the archive to read
+     * @returns {Promise} A promise for the requested file (blob)
      */
     function readRemoteArchive(url) {
         var request = new XMLHttpRequest();
-        return Q.Promise(function(resolve, reject) {
+        return Q.Promise(function (resolve, reject) {
             request.onreadystatechange = function () {
-                if (request.readyState === XMLHttpRequest.DONE) {
+                if (request.readyState === 4) {
                     if (request.status >= 200 && request.status < 300 || request.status === 0) {
-                        // Hack to make this look similar to a file
+                        // Hack to make the blob look like a file
                         request.response.name = url;
                         resolve(request.response);
-                    }
-                    else {
+                    } else {
                         reject("HTTP status " + request.status + " when reading " + url);
                     }
                 }

@@ -857,20 +857,22 @@ define(['jquery', 'zimArchiveLoader', 'uiUtil', 'cookies','abstractFilesystemAcc
      * @returns {Promise} A promise for the requested file (blob)
      */
     function readRemoteArchive(url) {
+        var request = new XMLHttpRequest();
         return Q.Promise(function (resolve, reject) {
-            var request = new XMLHttpRequest();
-            request.onreadystatechange = resolve(function () {
+            request.onreadystatechange = function () {
                 if (request.readyState === 4) {
                     if (request.status >= 200 && request.status < 300 || request.status === 0) {
                         // Hack to make the blob look like a file
                         request.response.name = url;
-                        return request.response;
+                        resolve(request.response);
                     } else {
-                        throw "HTTP status " + request.status + " when reading " + url;
+                        reject("HTTP status " + request.status + " when reading " + url);
                     }
                 }
-            });
-            request.onabort = reject;
+            };
+            request.onabort = function (e) {
+                reject(e);
+            };
             request.responseType = "blob";
             request.open("GET", url, true);
             request.send(null);
